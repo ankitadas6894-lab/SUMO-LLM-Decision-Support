@@ -125,3 +125,12 @@ async def analyze_traffic(request: TrafficRequest):
         "explanation": llm_output,
         "processing_time": f"{processing_time}s" # Sending time to frontend
     }
+    
+    
+    
+    
+    
+    
+    
+    
+#uvicorn main_llama:app --reload --port 8000

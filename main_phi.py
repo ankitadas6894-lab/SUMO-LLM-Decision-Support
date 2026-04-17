@@ -1,6 +1,6 @@
 import json
 import os
-import time  # Added for performance tracking
+import time  # Essential for comparing processing time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -16,9 +16,9 @@ app.add_middleware(
 )
 
 # --- LM Studio Configuration ---
+# Ensure LM Studio is running its Local Server on port 1234
 client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="lm-studio")
 
-# --- Route Options (Same as your Llama logic) ---
 ROUTE_OPTIONS = {
     "d-h": [
         {"name": "Route 1 (Highway)", "path": ["d", "f", "k", "a", "b", "c", "o", "h"], "base_speed": 28.5},
@@ -74,38 +74,41 @@ async def analyze_traffic(request: TrafficRequest):
     if not stats:
         return {"explanation": "No matching data found in traffic_data.json."}
 
-    # Math Calculation
+    # Preparation for LLM Prompt
     vehicle_counts = {"LOW": 5, "MEDIUM": 15, "HIGH": 45}
     congestion_index = vehicle_counts.get(stats["traffic_level"].upper(), 0) / 50 
-
     route_key = f"{request.source.lower()}-{request.destination.lower()}"
     available_routes = ROUTE_OPTIONS.get(route_key, [{"name": "Default", "path": [request.source, request.destination], "base_speed": 10}])
 
     prompt = f"""
-    You are a SUMO Traffic AI Assistant.
-    Vehicle: {request.vehicle_type}, Objective: {request.objective}, Congestion Index: {congestion_index:.2f}.
+    You are an Intelligent Traffic System (ITS) Assistant. 
+    Current Traffic Density: {stats['traffic_level']} (Index: {congestion_index:.2f}).
+    Vehicle: {request.vehicle_type}, Goal: {request.objective}.
     Available Routes: {json.dumps(available_routes)}
-    Decision: Pick a Route Name from the list and explain why in one sentence.
+    Task: Select the best Route Name. Explain why in one short sentence.
     """
 
-    # --- Start Timer ---
+    # --- START PERFORMANCE TRACKING ---
     start_time = time.time()
 
     try:
-        # UPDATED: Using Phi-3 identifier
         response = client.chat.completions.create(
-            model="phi-3-mini-4k-instruct", 
-            messages=[{"role": "system", "content": "You are a professional traffic analyst."},
-                      {"role": "user", "content": prompt}],
-            temperature=0.1 # Lower temp for better logic in smaller models
+            model="phi-3-mini-4k-instruct", # Matches your LM Studio model
+            messages=[
+                {"role": "system", "content": "You are a concise traffic analyst."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,  # Lower temperature makes Phi-3 more consistent
+            max_tokens=150
         )
         
-        # --- Stop Timer ---
+        # --- STOP PERFORMANCE TRACKING ---
         end_time = time.time()
         processing_time = round(end_time - start_time, 2)
         
         llm_output = response.choices[0].message.content
         
+        # Logic to map LLM text back to the route path
         chosen_path = available_routes[0]["path"]
         for route in available_routes:
             if route["name"].lower() in llm_output.lower():
@@ -113,7 +116,7 @@ async def analyze_traffic(request: TrafficRequest):
                 break
 
     except Exception as e:
-        llm_output = f"Error connecting to LM Studio (Phi): {str(e)}"
+        llm_output = f"Phi-3 Error: {str(e)}"
         chosen_path = available_routes[0]["path"]
         processing_time = 0
 
@@ -123,5 +126,15 @@ async def analyze_traffic(request: TrafficRequest):
         "congestion": stats["traffic_level"],
         "speed": f"{stats['avg_speed_mps']} m/s",
         "explanation": llm_output,
-        "processing_time": f"{processing_time}s" # Sending time to frontend
+        "processing_time": f"{processing_time}s" # Crucial for your comparison study
     }
+    
+    
+    
+    
+    
+    
+    
+    
+ #uvicorn main_phi:app --reload --port 8001
+    

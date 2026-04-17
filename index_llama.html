@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SUMO LLM Decision Support System</title>
+    <title>Llama-2 Decision Support System</title>
     <style>
         :root {
             --bg-dark: #0b0e14;
             --sidebar-bg: #1c222d;
-            --accent-blue: #00c6ff;
+            --llama-gold: #FFCC00; /* Distinct Llama Color */
             --road-base: #3a4454;
             --node-color: #00ffcc;
-            --highlight-yellow: #FFCC00;
+            --highlight-gold: #FFCC00;
         }
 
         body { 
@@ -27,14 +27,14 @@
             width: 380px; 
             padding: 25px; 
             background: var(--sidebar-bg); 
-            border-right: 1px solid #2d3544; 
+            border-right: 2px solid var(--llama-gold); 
             overflow-y: auto; 
             display: flex;
             flex-direction: column;
         }
 
-        h2 { color: var(--accent-blue); margin-top: 0; font-size: 1.4em; }
-        h3 { font-size: 0.8em; color: #4ade80; margin-top: -10px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        h2 { color: var(--llama-gold); margin-top: 0; font-size: 1.4em; text-transform: uppercase; }
+        h3 { font-size: 0.8em; color: #4ade80; margin-top: -10px; margin-bottom: 20px; letter-spacing: 1px; }
 
         label { display: block; margin-top: 12px; font-size: 0.85em; color: #8892b0; font-weight: 600; }
         
@@ -50,23 +50,23 @@
         }
 
         button { 
-            background: var(--accent-blue); 
+            background: var(--llama-gold); 
             color: #000; 
             font-weight: bold; 
             cursor: pointer; 
             margin-top: 20px;
-            transition: 0.3s;
             border: none;
+            transition: 0.3s;
         }
 
-        button:hover { background: #00e5ff; box-shadow: 0 0 15px rgba(0, 198, 255, 0.4); }
+        button:hover { background: #ffdb4d; box-shadow: 0 0 15px rgba(255, 204, 0, 0.4); }
 
         .result-box { 
             margin-top: 20px; 
             padding: 15px; 
             background: #252b38; 
             border-radius: 10px; 
-            border-left: 4px solid var(--accent-blue);
+            border-left: 4px solid var(--llama-gold);
             display: none; 
             animation: fadeIn 0.5s ease;
         }
@@ -76,39 +76,42 @@
         .metric { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; }
         .metric b { color: #8892b0; }
         
+        .time-highlight { color: #ff6b6b; font-weight: bold; } /* Reddish to indicate it's usually slower */
+
         #explanationText { 
-            background: rgba(0, 198, 255, 0.05);
+            background: rgba(255, 204, 0, 0.05);
             padding: 10px;
             border-radius: 5px;
             font-style: italic;
             color: #d1d5db;
             border: 1px dashed #3a4454;
+            font-size: 0.9em;
         }
 
         .map-area { flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; }
         .svg-container { width: 95%; height: 95%; }
         .road-line { stroke: var(--road-base); stroke-width: 4; stroke-linecap: round; opacity: 0.4; }
-        #highlightPath { stroke: var(--highlight-yellow); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; fill: none; filter: url(#glow); }
+        #highlightPath { stroke: var(--highlight-gold); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; fill: none; filter: url(#glowLlama); }
         .node-dot { fill: var(--node-color); stroke: var(--bg-dark); stroke-width: 2; }
-        .node-label { fill: white; font-size: 13px; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+        .node-label { fill: white; font-size: 13px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <h2>🛰️ SUMO Router</h2>
-    <h3>Decision Support System</h3>
+    <h2>🦙 Llama-2 Agent</h2>
+    <h3>ITS Decision Support</h3>
     
-    <label>Vehicle Type [V]</label>
+    <label>Vehicle Type</label>
     <select id="vehicle">
-        <option value="Car">Standard Vehicle (Car)</option>
-        <option value="Ambulance">Emergency (Ambulance)</option>
+        <option value="Car">Standard Sedan</option>
+        <option value="Ambulance">Emergency Vehicle</option>
     </select>
 
-    <label>Objective [O]</label>
+    <label>Objective</label>
     <select id="objective">
-        <option value="Fastest route">Optimize for Speed (Fastest)</option>
-        <option value="Safe route">Optimize for Safety (Safest)</option>
+        <option value="Fastest route">Optimize for Speed</option>
+        <option value="Safe route">Optimize for Safety</option>
     </select>
 
     <div style="display: flex; gap: 10px;">
@@ -126,22 +129,22 @@
         </div>
     </div>
 
-    <label>Traffic Level (Algorithm Step 3)</label>
+    <label>Traffic Level</label>
     <select id="traffic">
-        <option value="Low">Low </option>
-        <option value="Medium">Medium </option>
-        <option value="High">High </option>
+        <option value="Low">Low Density</option>
+        <option value="Medium">Medium Density</option>
+        <option value="High">Heavy Congestion</option>
     </select>
 
-    <button onclick="runAnalysis()">Run LLM Decision Algorithm</button>
+    <button id="llamaBtn" onclick="runLlamaAnalysis()">Analyze with Llama-2</button>
 
     <div id="resultBox" class="result-box">
-        <div class="metric"><b>Route:</b> <span id="routeDisplay" style="color:var(--highlight-yellow)"></span></div>
-        <div class="metric"><b>Est. Time:</b> <span id="timeDisplay"></span></div>
-        <div class="metric"><b>Avg Speed:</b> <span id="speedDisplay"></span></div>
+        <div class="metric"><b>Recommended:</b> <span id="routeDisplay" style="color:var(--llama-gold)"></span></div>
+        <div class="metric"><b>SUMO Travel Time:</b> <span id="timeDisplay"></span></div>
+        <div class="metric"><b>AI Response Time:</b> <span id="procTimeDisplay" class="time-highlight"></span></div>
         <div class="metric"><b>Congestion:</b> <span id="congDisplay"></span></div>
         <hr style="border: 0; border-top: 1px solid #3a4454; margin: 15px 0;">
-        <label style="margin-top: 0;">LLM Reasoning Output:</label>
+        <label style="margin-top: 0;">Llama-2 Reasoning:</label>
         <p id="explanationText"></p>
     </div>
 </div>
@@ -150,7 +153,7 @@
     <div class="svg-container">
         <svg id="mainSvg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
             <defs>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <filter id="glowLlama" x="-20%" y="-20%" width="140%" height="140%">
                     <feGaussianBlur stdDeviation="3" result="blur" />
                     <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
@@ -164,7 +167,7 @@
 
 <script>
     const nodeCoords = {
-        "d": [200, 50],  "e": [350, 50],  "i": [750, 50],
+        "d": [200, 50], "e": [350, 50], "i": [750, 50],
         "f": [200, 180], "g": [350, 180], "j": [930, 180],
         "k": [100, 300], "l": [200, 300], "m": [300, 300], "n": [400, 300],
         "a": [200, 420], "b": [300, 420], "c": [750, 420],
@@ -204,7 +207,11 @@
         }
     }
 
-    async function runAnalysis() {
+    async function runLlamaAnalysis() {
+        const btn = document.getElementById("llamaBtn");
+        btn.innerText = "Llama-2 is Thinking...";
+        btn.disabled = true;
+
         const payload = {
             vehicle_type: document.getElementById("vehicle").value,
             objective: document.getElementById("objective").value,
@@ -214,6 +221,7 @@
         };
 
         try {
+            // Points to your Llama Backend on Port 8000
             const response = await fetch("http://127.0.0.1:8000/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -223,13 +231,19 @@
 
             document.getElementById("routeDisplay").innerText = data.recommended_route;
             document.getElementById("timeDisplay").innerText = data.travel_time;
-            document.getElementById("speedDisplay").innerText = data.speed;
+            document.getElementById("procTimeDisplay").innerText = data.processing_time;
             document.getElementById("congDisplay").innerText = data.congestion;
             document.getElementById("explanationText").innerText = data.explanation;
             document.getElementById("resultBox").style.display = "block";
 
             drawHighlight(data.recommended_route);
-        } catch (err) { console.error("API Error", err); }
+        } catch (err) { 
+            console.error("Llama API Error", err); 
+            alert("Ensure the Llama backend is running on port 8000");
+        } finally {
+            btn.innerText = "Analyze with Llama-2";
+            btn.disabled = false;
+        }
     }
 
     function drawHighlight(routeStr) {
@@ -246,7 +260,7 @@
         path.style.strokeDasharray = length;
         path.style.strokeDashoffset = length;
         path.getBoundingClientRect(); 
-        path.style.transition = 'stroke-dashoffset 1.2s ease-in-out';
+        path.style.transition = 'stroke-dashoffset 1.5s ease-in-out';
         path.style.strokeDashoffset = "0";
     }
 
